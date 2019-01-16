@@ -1,7 +1,11 @@
 language: node_js
-node_js:
-  - 8
-  - 10
+_aliases:
+  - &node-prod
+    # This is the NodeJS version we run in production.
+    node_js: '8'
+  - &node-next
+    # This is the next NodeJS version we will support.
+    node_js: '10'
 
 cache:
   yarn: true
@@ -11,3 +15,15 @@ install: yarn install --pure-lockfile
 
 matrix:
   fast_finish: true
+
+jobs:
+  include:
+    - name: unit tests (node@production)
+      <<: *node-prod
+      script: yarn test
+    - name: unit tests (node@next)
+      <<: *node-next
+      script: yarn test
+    - name: prettier
+      <<: *node-prod
+      script: yarn prettier-ci
