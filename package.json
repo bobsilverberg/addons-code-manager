@@ -11,7 +11,10 @@
     "start": "BROWSER=none react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "prettier": "prettier --write '**'",
+    "prettier-ci": "yarn prettier --list-different || (echo '\n\nThis failure means you did not run `yarn prettier-dev` before committing\n\n' && exit 1)",
+    "prettier-dev": "pretty-quick --branch master"
   },
   "eslintConfig": {
     "extends": "react-app"
@@ -21,5 +24,9 @@
     "not dead",
     "not ie <= 11",
     "not op_mini all"
-  ]
+  ],
+  "devDependencies": {
+    "prettier": "1.15.3",
+    "pretty-quick": "^1.8.1"
+  }
 }
