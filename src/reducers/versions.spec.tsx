@@ -21,7 +21,7 @@ import reducer, {
   getVersionInfo,
   initialState,
 } from './versions';
-import { getRootPath } from '../components/FileTree';
+import { getRootPath } from './fileTree';
 import {
   createFakeEntry,
   fakeExternalDiff,

@@ -7,7 +7,7 @@ import { ThunkActionCreator } from '../configureStore';
 import { getDiff, getVersion, getVersionsList, isErrorResponse } from '../api';
 import { LocalizedStringMap } from '../utils';
 import { actions as errorsActions } from './errors';
-import { getRootPath } from '../components/FileTree';
+import { getRootPath } from './fileTree';
 
 type VersionCompatibility = {
   [appName: string]: {
@@ -245,9 +245,9 @@ export type VersionsState = {
     [addonId: number]: VersionsMap;
   };
   compareInfo:
-    | CompareInfo // data successfully loaded
-    | null // an error has occured
-    | undefined; // data not fetched yet
+  | CompareInfo // data successfully loaded
+  | null // an error has occured
+  | undefined; // data not fetched yet
   versionInfo: {
     [versionId: number]: Version;
   };
