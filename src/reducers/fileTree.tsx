@@ -17,6 +17,14 @@ export type DirectoryNode = {
 
 export type TreeNode = FileNode | DirectoryNode;
 
+type FileMessageIds = string[];
+
+type TreeFile = {
+  [path: string]: FileMessageIds;
+};
+
+type TreeFileList = TreeFile[];
+
 const recursiveSortInPlace = (node: DirectoryNode): void => {
   node.children.sort((a, b) => {
     if ('children' in a && 'children' in b) {
@@ -133,11 +141,13 @@ export const buildFileTree = (version: Version): DirectoryNode => {
 export type FileTreeState = {
   forVersionId: void | number;
   tree: DirectoryNode | void;
+  treeFileList: TreeFileList | void;
 };
 
 export const initialState: FileTreeState = {
   forVersionId: undefined,
   tree: undefined,
+  treeFileList: undefined,
 };
 
 export const actions = {

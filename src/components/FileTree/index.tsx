@@ -17,6 +17,12 @@ import {
   getTree,
 } from '../../reducers/fileTree';
 import {
+  LinterMessageMap,
+  LinterMessagesByPath,
+  fetchLinterMessages,
+  selectMessageMap,
+} from '../../reducers/linter';
+import {
   Version,
   actions as versionsActions,
   getVersionInfo,
@@ -35,6 +41,7 @@ export type PublicProps = {
 
 export type DefaultProps = {
   _buildTree: typeof fileTreeActions.buildTree;
+  _fetchLinterMessages: typeof fetchLinterMessages;
   _log: typeof log;
 };
 
@@ -50,6 +57,7 @@ export class FileTreeBase extends React.Component<Props> {
 
   static defaultProps: DefaultProps = {
     _buildTree: fileTreeActions.buildTree,
+    _fetchLinterMessages: fetchLinterMessages,
     _log: log,
   };
 
@@ -68,10 +76,27 @@ export class FileTreeBase extends React.Component<Props> {
   }
 
   _loadData = () => {
-    const { _buildTree, dispatch, tree, version } = this.props;
+    const {
+      _buildTree,
+      _fetchLinterMessages,
+      dispatch,
+      messageMap,
+      messagesAreLoading,
+      tree,
+      version,
+    } = this.props;
 
-    if (version && !tree) {
-      dispatch(_buildTree({ version }));
+    if (version) {
+      if (messageMap === undefined && !messagesAreLoading) {
+        dispatch(
+          _fetchLinterMessages({
+            versionId: version.id,
+            url: validationURL,
+          }),
+        );
+      } else if (version && !tree) {
+        dispatch(_buildTree({ version }));
+      }
     }
   };
 
