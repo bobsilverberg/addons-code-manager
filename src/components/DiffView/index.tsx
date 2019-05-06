@@ -1,3 +1,4 @@
+import queryString from 'query-string';
 import * as React from 'react';
 import {
   ChangeInfo,
@@ -17,7 +18,7 @@ import makeClassName from 'classnames';
 import LinterProvider, { LinterProviderInfo } from '../LinterProvider';
 import LinterMessage from '../LinterMessage';
 import refractor from '../../refractor';
-import { Version } from '../../reducers/versions';
+import { Version, getRelativeDiffAnchor } from '../../reducers/versions';
 import { getLanguageFromMimeType, gettext } from '../../utils';
 import styles from './styles.module.scss';
 import 'react-diff-view/style/index.css';
@@ -37,6 +38,7 @@ export type PublicProps = {
 
 export type DefaultProps = {
   _document: typeof document;
+  _getRelativeDiffAnchor: typeof getRelativeDiffAnchor;
   _tokenize: typeof tokenize;
   viewType: DiffProps['viewType'];
 };
@@ -48,12 +50,46 @@ export type Props = PublicProps & DefaultProps & RouterProps;
 export class DiffViewBase extends React.Component<Props> {
   static defaultProps: DefaultProps = {
     _document: document,
+    _getRelativeDiffAnchor: getRelativeDiffAnchor,
     _tokenize: tokenize,
     viewType: 'unified',
   };
 
   componentDidMount() {
-    const { _document, location } = this.props;
+    this.loadData();
+  }
+
+  componentDidUpdate() {
+    this.loadData();
+  }
+
+  loadData() {
+    const {
+      _document,
+      _getRelativeDiffAnchor,
+      diffs,
+      history,
+      location,
+    } = this.props;
+
+    if (diffs.length) {
+      const queryParams = queryString.parse(location.search);
+      if (queryParams.showFirstDiff) {
+        const firstDiffAnchor = _getRelativeDiffAnchor({ diff: diffs[0] });
+        if (firstDiffAnchor) {
+          const newParams = { ...queryParams };
+
+          delete newParams.showFirstDiff;
+          const newLocation = {
+            ...location,
+            hash: `#${firstDiffAnchor}`,
+            search: `?${queryString.stringify(newParams)}`,
+          };
+
+          history.push(newLocation);
+        }
+      }
+    }
 
     if (!location.hash.length) {
       return;

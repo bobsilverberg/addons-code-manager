@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/camelcase */
+import queryString from 'query-string';
 import React from 'react';
 import {
   Diff,
@@ -8,7 +9,7 @@ import {
   getChangeKey,
 } from 'react-diff-view';
 import { ShallowWrapper, shallow } from 'enzyme';
-import { Location } from 'history';
+import { History, Location } from 'history';
 
 import basicDiff from './fixtures/basicDiff';
 import multipleDiff from './fixtures/multipleDiff';
@@ -19,6 +20,7 @@ import { getLanguageFromMimeType } from '../../utils';
 import { createInternalVersion } from '../../reducers/versions';
 import {
   createContextWithFakeRouter,
+  createFakeHistory,
   createFakeLinterMessagesByPath,
   createFakeLocation,
   fakeVersion,
@@ -35,15 +37,16 @@ import DiffView, {
 } from '.';
 
 describe(__filename, () => {
-  type RenderParams = { location?: Location } & Partial<
+  type RenderParams = { history?: History; location?: Location } & Partial<
     PublicProps & DefaultProps
   >;
 
   const render = ({
+    history = createFakeHistory(),
     location = createFakeLocation(),
     ...props
   }: RenderParams = {}) => {
-    const shallowOptions = createContextWithFakeRouter({ location });
+    const shallowOptions = createContextWithFakeRouter({ history, location });
 
     return shallowUntilTarget(
       <DiffView
@@ -222,6 +225,121 @@ describe(__filename, () => {
     renderWithLinterProvider({ _document, location });
 
     expect(_document.querySelector).toHaveBeenCalledWith(location.hash);
+  });
+
+  it('tries to find the selected line element on update', () => {
+    const _document = {
+      ...document,
+      querySelector: jest.fn(),
+    };
+    const location = createFakeLocation({ hash: '#some-hash' });
+
+    const root = render({ _document });
+    root.setProps({ location });
+
+    expect(_document.querySelector).toHaveBeenCalledWith(location.hash);
+  });
+
+  it('calls history.push to navigate to the first diff when showFirstDiff is specified', () => {
+    const firstDiffAnchor = 'D5';
+    const _getRelativeDiffAnchor = jest.fn().mockReturnValue(firstDiffAnchor);
+    const location = createFakeLocation({
+      search: queryString.stringify({ showFirstDiff: true }),
+    });
+    const history = createFakeHistory({ location });
+
+    const queryParams = queryString.parse(location.search);
+    const newParams = { ...queryParams };
+
+    delete newParams.showFirstDiff;
+    const newLocation = {
+      ...location,
+      hash: `#${firstDiffAnchor}`,
+      search: `?${queryString.stringify(newParams)}`,
+    };
+
+    renderWithLinterProvider({ _getRelativeDiffAnchor, history, location });
+
+    expect(history.push).toHaveBeenCalledWith(newLocation);
+  });
+
+  it('calls history.push on update to navigate to the first diff when showFirstDiff is specified', () => {
+    const firstDiffAnchor = 'D5';
+    const _getRelativeDiffAnchor = jest.fn().mockReturnValue(firstDiffAnchor);
+    const location = createFakeLocation({
+      search: queryString.stringify({ showFirstDiff: true }),
+    });
+    const history = createFakeHistory({ location });
+
+    const queryParams = queryString.parse(location.search);
+    const newParams = { ...queryParams };
+
+    delete newParams.showFirstDiff;
+    const newLocation = {
+      ...location,
+      hash: `#${firstDiffAnchor}`,
+      search: `?${queryString.stringify(newParams)}`,
+    };
+
+    const root = render({
+      _getRelativeDiffAnchor,
+      diffs: [],
+      history,
+      location,
+    });
+
+    expect(history.push).not.toHaveBeenCalled();
+
+    root.setProps({ diffs: parseDiff(basicDiff) });
+
+    expect(history.push).toHaveBeenCalledWith(newLocation);
+  });
+
+  it('does not call history.push to navigate to the first diff when there are no diffs', () => {
+    const _getRelativeDiffAnchor = jest.fn().mockReturnValue('some-anchor');
+    const location = createFakeLocation({
+      search: queryString.stringify({ showFirstDiff: true }),
+    });
+    const history = createFakeHistory({ location });
+
+    renderWithLinterProvider({
+      _getRelativeDiffAnchor,
+      diffs: [],
+      history,
+      location,
+    });
+
+    expect(history.push).not.toHaveBeenCalled();
+  });
+
+  it('does not call history.push to navigate to the first diff when showFirstDiff query param is falsey', () => {
+    const _getRelativeDiffAnchor = jest.fn().mockReturnValue('some-anchor');
+    const location = createFakeLocation();
+    const history = createFakeHistory({ location });
+
+    renderWithLinterProvider({
+      _getRelativeDiffAnchor,
+      history,
+      location,
+    });
+
+    expect(history.push).not.toHaveBeenCalled();
+  });
+
+  it('does not call history.push to navigate to the first diff when there is no firstDiffAnchor', () => {
+    const _getRelativeDiffAnchor = jest.fn().mockReturnValue(null);
+    const location = createFakeLocation({
+      search: queryString.stringify({ showFirstDiff: true }),
+    });
+    const history = createFakeHistory({ location });
+
+    renderWithLinterProvider({
+      _getRelativeDiffAnchor,
+      history,
+      location,
+    });
+
+    expect(history.push).not.toHaveBeenCalled();
   });
 
   it('does not try to find the selected line element on mount when hash is empty', () => {
