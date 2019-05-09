@@ -67,15 +67,15 @@ export class DiffViewBase extends React.Component<Props> {
     const {
       _document,
       _getRelativeDiffAnchor,
-      diffs,
+      diff,
       history,
       location,
     } = this.props;
 
-    if (diffs.length) {
+    if (diff) {
       const queryParams = queryString.parse(location.search);
       if (queryParams.showFirstDiff) {
-        const firstDiffAnchor = _getRelativeDiffAnchor({ diff: diffs[0] });
+        const firstDiffAnchor = _getRelativeDiffAnchor({ diff });
         if (firstDiffAnchor) {
           const newParams = { ...queryParams };
 

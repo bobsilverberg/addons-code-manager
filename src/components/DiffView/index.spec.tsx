@@ -283,7 +283,7 @@ describe(__filename, () => {
 
     const root = render({
       _getRelativeDiffAnchor,
-      diffs: [],
+      diff: null,
       history,
       location,
     });
@@ -304,7 +304,7 @@ describe(__filename, () => {
 
     renderWithLinterProvider({
       _getRelativeDiffAnchor,
-      diffs: [],
+      diff: null,
       history,
       location,
     });
