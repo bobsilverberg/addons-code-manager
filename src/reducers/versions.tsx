@@ -861,14 +861,14 @@ export const fetchDiff = ({
 type ViewVersionFileParams = {
   preserveHash?: boolean;
   selectedPath: string;
-  showFirstDiff?: boolean;
+  showDiff?: DiffPosition;
   versionId: number;
 };
 
 export const viewVersionFile = ({
   preserveHash = false,
   selectedPath,
-  showFirstDiff = false,
+  showDiff,
   versionId,
 }: ViewVersionFileParams): ThunkActionCreator => {
   return async (dispatch, getState) => {
@@ -876,12 +876,12 @@ export const viewVersionFile = ({
     const queryParams = {
       ...queryString.parse(router.location.search),
       path: selectedPath,
+      showDiff,
     };
 
-    const baseSearch = `?${queryString.stringify(queryParams)}`;
     const newLocation = {
       ...router.location,
-      search: showFirstDiff ? `${baseSearch}&showFirstDiff=true` : baseSearch,
+      search: `?${queryString.stringify(queryParams)}`,
     };
 
     // We do not want to preserve the hash when we select a new file for
@@ -943,7 +943,10 @@ export const goToRelativeDiff = ({
         _viewVersionFile({
           preserveHash: false,
           selectedPath: nextDiffInfo.path,
-          showFirstDiff: true,
+          showDiff:
+            position === RelativePathPosition.next
+              ? DiffPosition.first
+              : DiffPosition.last,
           versionId,
         }),
       );

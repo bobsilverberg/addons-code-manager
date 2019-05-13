@@ -4,6 +4,7 @@ import { getType } from 'typesafe-actions';
 
 import { actions as errorsActions } from './errors';
 import reducer, {
+  DiffPosition,
   ExternalVersionWithDiff,
   ExternalVersionsList,
   Version,
@@ -1830,13 +1831,18 @@ describe(__filename, () => {
       );
     });
 
-    it('appends showFirstDiff=true if requested', async () => {
+    it('appends showDiff if requested', async () => {
       const location = createFakeLocation({ pathname });
       const history = createFakeHistory({ location });
+      const diffPosition = DiffPosition.first;
 
       const { dispatch, thunk } = thunkTester({
         createThunk: () =>
-          viewVersionFile({ selectedPath, showFirstDiff: true, versionId }),
+          viewVersionFile({
+            selectedPath,
+            showDiff: diffPosition,
+            versionId,
+          }),
         store: configureStore({ history }),
       });
 
@@ -1845,7 +1851,7 @@ describe(__filename, () => {
       expect(dispatch).toHaveBeenCalledWith(
         push({
           ...location,
-          search: `?path=${selectedPath}&showFirstDiff=true`,
+          search: `?path=${selectedPath}&showDiff=${diffPosition}`,
           hash: undefined,
         }),
       );
@@ -2439,47 +2445,56 @@ describe(__filename, () => {
       );
     });
 
-    it('dispatches viewVersionFile for a new file', async () => {
-      const path = 'newFile.js';
-      const _getRelativeDiff = jest.fn().mockReturnValue({ path });
-      const currentAnchor = '';
-      const diff = null;
-      const pathList = ['file1.js'];
-      const position = RelativePathPosition.next;
-      const versionId = 123;
+    it.each([
+      ['next', RelativePathPosition.next, DiffPosition.first],
+      ['previous', RelativePathPosition.previous, DiffPosition.last],
+    ])(
+      'dispatches viewVersionFile for a new file with "%s"',
+      async (direction, position, diffPosition) => {
+        const path = 'newFile.js';
+        const _getRelativeDiff = jest.fn().mockReturnValue({ path });
+        const currentAnchor = '';
+        const diff = null;
+        const pathList = ['file1.js'];
+        const versionId = 123;
 
-      const fakeThunk = createFakeThunk();
-      const _viewVersionFile = fakeThunk.createThunk;
+        const fakeThunk = createFakeThunk();
+        const _viewVersionFile = fakeThunk.createThunk;
 
-      const store = configureStore();
-      store.dispatch(
-        actions.loadVersionInfo({ version: { ...fakeVersion, id: versionId } }),
-      );
-
-      const { dispatch, thunk } = thunkTester({
-        createThunk: () =>
-          _goToRelativeDiff({
-            _getRelativeDiff,
-            _viewVersionFile,
-            currentAnchor,
-            diff,
-            pathList,
-            position,
-            versionId,
+        const store = configureStore();
+        store.dispatch(
+          actions.loadVersionInfo({
+            version: { ...fakeVersion, id: versionId },
           }),
-        store,
-      });
+        );
 
-      await thunk();
+        const typedPosition = position as RelativePathPosition;
 
-      expect(dispatch).toHaveBeenCalledWith(fakeThunk.thunk);
-      expect(_viewVersionFile).toHaveBeenCalledWith({
-        preserveHash: false,
-        selectedPath: path,
-        showFirstDiff: true,
-        versionId,
-      });
-    });
+        const { dispatch, thunk } = thunkTester({
+          createThunk: () =>
+            _goToRelativeDiff({
+              _getRelativeDiff,
+              _viewVersionFile,
+              currentAnchor,
+              diff,
+              pathList,
+              position: typedPosition,
+              versionId,
+            }),
+          store,
+        });
+
+        await thunk();
+
+        expect(dispatch).toHaveBeenCalledWith(fakeThunk.thunk);
+        expect(_viewVersionFile).toHaveBeenCalledWith({
+          preserveHash: false,
+          selectedPath: path,
+          showDiff: diffPosition,
+          versionId,
+        });
+      },
+    );
 
     it('dispatches nothing if no anchor or path is returned', async () => {
       const _getRelativeDiff = jest
@@ -2549,7 +2564,9 @@ describe(__filename, () => {
       // but this doesn't seem like a good thing to do in a test.
       try {
         await thunk();
-      } catch (e) {}
+      } catch (e) {
+        // No-op
+      }
 
       expect(_getRelativeDiff).not.toHaveBeenCalled();
     });
