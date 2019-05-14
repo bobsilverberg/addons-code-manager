@@ -1,3 +1,4 @@
+import { push } from 'connected-react-router';
 import { Reducer } from 'redux';
 import { ActionType, createAction, getType } from 'typesafe-actions';
 
@@ -356,6 +357,63 @@ export const goToRelativeFile = ({
         versionId,
       }),
     );
+  };
+};
+
+type GoToRelativeMessageParams = {
+  _getRelativeMessage?: typeof getRelativeMessage;
+  _viewVersionFile?: typeof viewVersionFile;
+  currentMessageUid: LinterMessage['uid'] | void;
+  currentPath: string;
+  messageMap: LinterMessageMap;
+  pathList: string[];
+  position: RelativePathPosition;
+  versionId: number;
+};
+
+export const goToRelativeMessage = ({
+  /* istanbul ignore next */
+  _getRelativeMessage = getRelativeMessage,
+  /* istanbul ignore next */
+  _viewVersionFile = viewVersionFile,
+  currentMessageUid,
+  currentPath,
+  messageMap,
+  pathList,
+  position,
+  versionId,
+}: GoToRelativeMessageParams): ThunkActionCreator => {
+  return async (dispatch, getState) => {
+    const nextPathAndUid = _getRelativeMessage({
+      currentMessageUid,
+      currentPath,
+      messageMap,
+      pathList,
+      position,
+    });
+
+    if (nextPathAndUid) {
+      const { path, uid } = nextPathAndUid;
+      const { router } = getState();
+
+      // Update the location with the hash for the message uid.
+      const newLocation = {
+        ...router.location,
+        hash: `#${uid}`,
+      };
+      dispatch(push(newLocation));
+
+      if (path !== currentPath) {
+        // We need a new file.
+        dispatch(
+          _viewVersionFile({
+            preserveHash: true,
+            selectedPath: path,
+            versionId,
+          }),
+        );
+      }
+    }
   };
 };
 
