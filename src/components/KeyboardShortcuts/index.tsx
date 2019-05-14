@@ -3,6 +3,7 @@ import * as React from 'react';
 import { connect } from 'react-redux';
 import { RouteComponentProps, withRouter } from 'react-router-dom';
 
+import { LinterProviderInfo } from '../LinterProvider';
 import { ApplicationState } from '../../reducers';
 import { ConnectedReduxProps } from '../../configureStore';
 import {
@@ -10,6 +11,7 @@ import {
   RelativePathPosition,
   getTree,
   goToRelativeFile,
+  goToRelativeMessage,
 } from '../../reducers/fileTree';
 import {
   CompareInfo,
@@ -20,10 +22,11 @@ import {
 import styles from './styles.module.scss';
 import { gettext, getPathFromQueryString } from '../../utils';
 
-const keys = ['k', 'j', 'e', 'o', 'c', 'n', 'p'];
+const keys = ['k', 'j', 'e', 'o', 'c', 'n', 'p', 'a', 'z'];
 
 export type PublicProps = {
   currentPath: string;
+  messageMap: LinterProviderInfo['messageMap'];
   versionId: number;
 };
 
@@ -43,6 +46,7 @@ export type DefaultProps = {
   _document: typeof document;
   _goToRelativeDiff: typeof goToRelativeDiff;
   _goToRelativeFile: typeof goToRelativeFile;
+  _goToRelativeMessage: typeof goToRelativeMessage;
 };
 
 type Props = RouteComponentProps<PropsFromRouter> &
@@ -56,16 +60,19 @@ export class KeyboardShortcutsBase extends React.Component<Props> {
     _document: document,
     _goToRelativeDiff: goToRelativeDiff,
     _goToRelativeFile: goToRelativeFile,
+    _goToRelativeMessage: goToRelativeMessage,
   };
 
   keydownListener = (event: KeyboardEvent) => {
     const {
       _goToRelativeDiff,
       _goToRelativeFile,
+      _goToRelativeMessage,
       compareInfo,
       currentAnchor,
       currentPath,
       dispatch,
+      messageMap,
       pathList,
       versionId,
     } = this.props;
@@ -134,6 +141,33 @@ export class KeyboardShortcutsBase extends React.Component<Props> {
           }
           break;
         case 'p':
+          if (compareInfo) {
+            dispatch(
+              _goToRelativeDiff({
+                currentAnchor,
+                diff: compareInfo.diff,
+                pathList,
+                position: RelativePathPosition.previous,
+                versionId,
+              }),
+            );
+          }
+          break;
+        case 'z':
+          if (messageMap) {
+            dispatch(
+              _goToRelativeMessage({
+                currentMessageUid: currentAnchor,
+                currentPath,
+                messageMap,
+                pathList,
+                position: RelativePathPosition.next,
+                versionId,
+              }),
+            );
+          }
+          break;
+        case 'a':
           if (compareInfo) {
             dispatch(
               _goToRelativeDiff({
