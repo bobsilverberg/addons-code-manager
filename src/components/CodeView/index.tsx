@@ -72,7 +72,13 @@ export class CodeViewBase extends React.Component<Props> {
       <React.Fragment>
         {selectedMessageMap &&
           selectedMessageMap.global.map((message) => {
-            return <LinterMessage key={message.uid} message={message} />;
+            return (
+              <LinterMessage
+                key={message.uid}
+                message={message}
+                scrollToMessage={isLineSelected(message.uid, location)}
+              />
+            );
           })}
         <div className={styles.CodeView}>
           <table className={styles.table}>
@@ -96,13 +102,6 @@ export class CodeViewBase extends React.Component<Props> {
                   };
                 }
 
-                let scrollToMessageProps = {};
-                if (isLineSelected(`line-${line}-messages`, location)) {
-                  scrollToMessageProps = {
-                    ref: _scrollToSelectedLine,
-                  };
-                }
-
                 return (
                   <React.Fragment key={`fragment-${line}`}>
                     <tr {...rowProps}>
@@ -120,7 +119,7 @@ export class CodeViewBase extends React.Component<Props> {
                       </td>
                     </tr>
                     {selectedMessageMap && selectedMessageMap.byLine[line] && (
-                      <tr {...scrollToMessageProps}>
+                      <tr>
                         <td
                           id={`line-${line}-messages`}
                           className={styles.linterMessages}
@@ -132,6 +131,10 @@ export class CodeViewBase extends React.Component<Props> {
                                 inline
                                 key={msg.uid}
                                 message={msg}
+                                scrollToMessage={isLineSelected(
+                                  msg.uid,
+                                  location,
+                                )}
                               />
                             );
                           })}

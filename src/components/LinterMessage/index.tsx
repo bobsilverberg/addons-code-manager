@@ -61,20 +61,34 @@ const renderDescription = (description: LinterMessage['description']) => {
 type PublicProps = {
   inline?: boolean;
   message: LinterMessage;
+  scrollToMessage?: boolean;
 };
 
-const LinterMessageBase = ({ message, inline = false }: PublicProps) => {
+export const scrollToSelectedLine = (element: HTMLParagraphElement | null) => {
+  console.log('scrollToSelectedLine being called...');
+  if (element) {
+    element.scrollIntoView();
+  }
+};
+
+const LinterMessageBase = ({
+  message,
+  inline = false,
+  scrollToMessage = false,
+}: PublicProps) => {
   const { description, message: linterMessage, type } = message;
   const variant = getAlertVariant(type);
 
   return (
-    <Alert
-      className={makeClassName(styles[variant], { [styles.inline]: inline })}
-      variant={variant}
-    >
-      <Alert.Heading>{decodeHtmlEntities(linterMessage)}</Alert.Heading>
-      <p className={styles.description}>{renderDescription(description)}</p>
-    </Alert>
+    <div ref={scrollToMessage ? scrollToSelectedLine : null}>
+      <Alert
+        className={makeClassName(styles[variant], { [styles.inline]: inline })}
+        variant={variant}
+      >
+        <Alert.Heading>{decodeHtmlEntities(linterMessage)}</Alert.Heading>
+        <p className={styles.description}>{renderDescription(description)}</p>
+      </Alert>
+    </div>
   );
 };
 

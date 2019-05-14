@@ -236,9 +236,9 @@ export const findRelativePathWithDiff = ({
   );
 };
 
-type MessagePathAndLine = {
+type MessagePathAndUid = {
   path: string;
-  line: LinterMessage['line'];
+  uid: LinterMessage['uid'];
 };
 
 const findRelativeMessage = (
@@ -246,7 +246,7 @@ const findRelativeMessage = (
   messageMap: LinterMessageMap,
   pathList: string[],
   position: RelativePathPosition,
-): MessagePathAndLine => {
+): MessagePathAndUid => {
   let path = currentPath;
   const maxAttempts = pathList.length;
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
@@ -262,7 +262,7 @@ const findRelativeMessage = (
         position === RelativePathPosition.previous ? msgArray.length - 1 : 0;
 
       if (msgArray[msgIndex]) {
-        return { path: nextPath, line: msgArray[msgIndex].line };
+        return { path: nextPath, uid: msgArray[msgIndex].uid };
       }
     }
     path = nextPath;
@@ -289,7 +289,7 @@ export const getRelativeMessage = ({
   messageMap,
   pathList,
   position,
-}: GetRelativeMessageParams): MessagePathAndLine | null => {
+}: GetRelativeMessageParams): MessagePathAndUid | null => {
   if (!Object.keys(messageMap).length) {
     // There are no messages at all.
     return null;
@@ -320,7 +320,7 @@ export const getRelativeMessage = ({
   }
 
   if (newIndex >= 0 && newIndex < messagesForPath.length) {
-    return { path: currentPath, line: messagesForPath[newIndex].line };
+    return { path: currentPath, uid: messagesForPath[newIndex].uid };
   }
   return findRelativeMessage(currentPath, messageMap, pathList, position);
 };
@@ -384,7 +384,7 @@ export const goToRelativeMessage = ({
   versionId,
 }: GoToRelativeMessageParams): ThunkActionCreator => {
   return async (dispatch, getState) => {
-    const nextPathAndLine = _getRelativeMessage({
+    const nextPathAndUid = _getRelativeMessage({
       currentMessageUid,
       currentPath,
       messageMap,
@@ -392,14 +392,14 @@ export const goToRelativeMessage = ({
       position,
     });
 
-    if (nextPathAndLine) {
-      const { path, line } = nextPathAndLine;
+    if (nextPathAndUid) {
+      const { path, uid } = nextPathAndUid;
       const { router } = getState();
 
       // Update the location with the hash for the message uid.
       const newLocation = {
         ...router.location,
-        hash: `#line-${line}-messages`,
+        hash: `#${uid}`,
       };
       dispatch(push(newLocation));
 
