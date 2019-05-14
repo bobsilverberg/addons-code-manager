@@ -96,6 +96,13 @@ export class CodeViewBase extends React.Component<Props> {
                   };
                 }
 
+                let scrollToMessageProps = {};
+                if (isLineSelected(`line-${line}-messages`, location)) {
+                  scrollToMessageProps = {
+                    ref: _scrollToSelectedLine,
+                  };
+                }
+
                 return (
                   <React.Fragment key={`fragment-${line}`}>
                     <tr {...rowProps}>
@@ -113,7 +120,7 @@ export class CodeViewBase extends React.Component<Props> {
                       </td>
                     </tr>
                     {selectedMessageMap && selectedMessageMap.byLine[line] && (
-                      <tr>
+                      <tr {...scrollToMessageProps}>
                         <td
                           id={`line-${line}-messages`}
                           className={styles.linterMessages}

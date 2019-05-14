@@ -399,7 +399,7 @@ export const goToRelativeMessage = ({
       // Update the location with the hash for the message uid.
       const newLocation = {
         ...router.location,
-        hash: `#L${line}`,
+        hash: `#line-${line}-messages`,
       };
       dispatch(push(newLocation));
 

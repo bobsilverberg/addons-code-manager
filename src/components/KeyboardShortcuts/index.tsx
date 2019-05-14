@@ -155,10 +155,16 @@ export class KeyboardShortcutsBase extends React.Component<Props> {
           break;
         case 'z':
           console.log(messageMap);
+          console.log('currentAnchor :', currentAnchor);
+          console.log(
+            'currentAnchor.match(/d+/g).map(Number) :',
+            /\d+/.exec(currentAnchor),
+          );
           if (messageMap) {
+            const line = /\d+/.exec(currentAnchor);
             dispatch(
               _goToRelativeMessage({
-                currentMessageUid: currentAnchor,
+                currentMessageLine: (line && line[0]) || null,
                 currentPath,
                 messageMap,
                 pathList,
