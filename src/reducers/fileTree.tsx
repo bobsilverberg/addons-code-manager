@@ -1,3 +1,5 @@
+import { push } from 'connected-react-router';
+import queryString from 'query-string';
 import { Reducer } from 'redux';
 import { ActionType, createAction, getType } from 'typesafe-actions';
 
@@ -5,6 +7,7 @@ import { Version, viewVersionFile } from './versions';
 import { ThunkActionCreator } from '../configureStore';
 import { getLocalizedString } from '../utils';
 import { LinterMessage, LinterMessageMap, getMessagesForPath } from './linter';
+import { getCodeLineAnchor } from '../components/CodeView/utils';
 
 export const ROOT_PATH = '~root~';
 
@@ -359,6 +362,57 @@ export const goToRelativeFile = ({
         versionId,
       }),
     );
+  };
+};
+
+type GoToRelativeMessageParams = {
+  _getRelativeMessage?: typeof getRelativeMessage;
+  _viewVersionFile?: typeof viewVersionFile;
+  currentMessageUid: LinterMessage['uid'] | void;
+  currentPath: string;
+  messageMap: LinterMessageMap;
+  pathList: string[];
+  position: RelativePathPosition;
+  versionId: number;
+};
+
+export const goToRelativeMessage = ({
+  /* istanbul ignore next */
+  _getRelativeMessage = getRelativeMessage,
+  currentMessageUid,
+  currentPath,
+  messageMap,
+  pathList,
+  position,
+}: GoToRelativeMessageParams): ThunkActionCreator => {
+  return async (dispatch, getState) => {
+    const nextPathLineAndUid = _getRelativeMessage({
+      currentMessageUid,
+      currentPath,
+      messageMap,
+      pathList,
+      position,
+    });
+
+    if (nextPathLineAndUid) {
+      const { line, path, uid } = nextPathLineAndUid;
+      const {
+        router: { location },
+      } = getState();
+
+      const queryParams = queryString.parse(location.search);
+      const newParams = { ...queryParams };
+      newParams.path = path;
+      newParams.messageUid = uid;
+
+      // Update the location with the hash for the message uid.
+      const newLocation = {
+        ...location,
+        hash: line ? getCodeLineAnchor(line) : '#',
+        search: queryString.stringify(newParams),
+      };
+      dispatch(push(newLocation));
+    }
   };
 };
 
