@@ -379,11 +379,14 @@ type GoToRelativeMessageParams = {
 export const goToRelativeMessage = ({
   /* istanbul ignore next */
   _getRelativeMessage = getRelativeMessage,
+  /* istanbul ignore next */
+  _viewVersionFile = viewVersionFile,
   currentMessageUid,
   currentPath,
   messageMap,
   pathList,
   position,
+  versionId,
 }: GoToRelativeMessageParams): ThunkActionCreator => {
   return async (dispatch, getState) => {
     const nextPathLineAndUid = _getRelativeMessage({
@@ -408,10 +411,21 @@ export const goToRelativeMessage = ({
       // Update the location with the hash for the message uid.
       const newLocation = {
         ...location,
-        hash: line ? getCodeLineAnchor(line) : '#',
+        hash: getCodeLineAnchor(line || 0),
         search: queryString.stringify(newParams),
       };
       dispatch(push(newLocation));
+
+      if (currentPath !== path) {
+        // We need a new file.
+        dispatch(
+          _viewVersionFile({
+            preserveHash: true,
+            selectedPath: path,
+            versionId,
+          }),
+        );
+      }
     }
   };
 };
