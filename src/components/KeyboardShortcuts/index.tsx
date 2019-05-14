@@ -154,6 +154,7 @@ export class KeyboardShortcutsBase extends React.Component<Props> {
           }
           break;
         case 'z':
+          console.log(messageMap);
           if (messageMap) {
             dispatch(
               _goToRelativeMessage({
