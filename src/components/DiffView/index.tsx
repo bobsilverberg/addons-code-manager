@@ -10,6 +10,8 @@ import {
   Hunks,
   HunkInfo,
   RenderGutterParams,
+  RenderToken,
+  Token,
   WidgetMap,
   getChangeKey,
   tokenize,
@@ -319,6 +321,43 @@ export class DiffViewBase extends React.Component<Props> {
     return gutter;
   };
 
+  renderToken: RenderToken = (token, defaultRender, i) => {
+    console.log('--- inside renderToken!');
+    // const { enableCommenting, version } = this.props;
+    console.log('--- token: ', token);
+    console.log('--- defaultRender: ', defaultRender);
+    console.log('--- i: ', i);
+
+    // const { isDelete, lineNumber } = change;
+
+    // const defaultGutter = wrapInAnchor(renderDefault());
+    // let gutter = defaultGutter;
+    // if (enableCommenting && !isDelete && lineNumber && side === 'new') {
+    //   gutter = (
+    //     <Commentable
+    //       as="div"
+    //       className={styles.gutter}
+    //       line={lineNumber}
+    //       fileName={version.selectedPath}
+    //       versionId={version.id}
+    //     >
+    //       {(addCommentButton) => (
+    //         <>
+    //           {defaultGutter}
+    //           <span className={styles.commentButton}>{addCommentButton}</span>
+    //         </>
+    //       )}
+    //     </Commentable>
+    //   );
+    // }
+
+    return (
+      <div className="myDiv" key={i}>
+        {defaultRender(token, i)}
+      </div>
+    );
+  };
+
   renderWithMessages = ({ selectedMessageMap }: LinterProviderInfo) => {
     const {
       _diffCanBeHighlighted,
@@ -438,7 +477,7 @@ export class DiffViewBase extends React.Component<Props> {
                 generateAnchorID={getChangeKey}
                 selectedChanges={selectedChanges}
                 widgets={this.getWidgets(hunks, selectedMessageMap)}
-                renderGutter={this.renderGutter}
+                renderToken={this.renderToken}
               >
                 {this.renderHunks}
               </Diff>

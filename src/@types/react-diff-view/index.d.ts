@@ -55,6 +55,12 @@ declare module 'react-diff-view' {
     inHoverState: boolean;
   };
 
+  export type RenderToken = (
+    token: Token,
+    defaultRender: (token: Token, i: number) => React.ReactElement,
+    i: number,
+  ) => ReactElement;
+
   type DiffProps = {
     children: (hunks: HunkInfo[]) => ReactNode;
     className?: string;
@@ -65,6 +71,7 @@ declare module 'react-diff-view' {
     gutterType?: 'default' | 'anchor' | 'none';
     generateAnchorID?: (change: ChangeInfo) => string;
     renderGutter?: (RenderGutterParams) => ReactElement;
+    renderToken?: RenderToken;
     selectedChanges?: string[];
     widgets?: WidgetMap;
   };
