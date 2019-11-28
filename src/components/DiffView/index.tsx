@@ -330,21 +330,34 @@ export class DiffViewBase extends React.Component<Props> {
       location,
     } = this.props;
 
-    const options = {
-      highlight: true,
-      language: getLanguageFromMimeType(mimeType),
-      refractor,
-    };
+    let tokens;
 
     const selectedChanges =
       // Remove the `#` if `location.hash` is defined
       location.hash.length > 2 ? [location.hash.substring(1)] : [];
 
-    let tokens;
+    const wrapInCustom = (hunks: Hunks) => {
+      const changes = hunks.flatMap((hunk) => hunk.changes);
+      console.log('----- flatMap changes: ', changes);
+
+      return (hunks: Hunks) => hunks;
+    };
+
     if (diff && _diffCanBeHighlighted(diff)) {
+      const options = {
+        highlight: true,
+        language: getLanguageFromMimeType(mimeType),
+        refractor,
+        enhancers: [wrapInCustom(diff.hunks)],
+      };
+
+      const customTokenize = (hunks: Hunks) => {
+        return _tokenize(hunks, options);
+      };
+
       // TODO: always highlight when we can use a Web Worker.
       // https://github.com/mozilla/addons-code-manager/issues/928
-      tokens = _tokenize(diff.hunks, options);
+      tokens = customTokenize(diff.hunks);
     }
 
     const extraMessages = [];
