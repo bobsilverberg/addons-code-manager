@@ -7,7 +7,12 @@ import {
   Popover,
 } from 'react-bootstrap';
 
-import { createFakeRef, shallowUntilTarget, spyOn } from '../../test-helpers';
+import {
+  createFakeEvent,
+  createFakeRef,
+  shallowUntilTarget,
+  spyOn,
+} from '../../test-helpers';
 import { actions as popoverActions } from '../../reducers/popover';
 import configureStore from '../../configureStore';
 
@@ -131,7 +136,14 @@ describe(__filename, () => {
       throw new Error('onHideOverlay was unexpectedly empty');
     }
     // Simulate how Overlay calls onHide() internally.
-    onHideOverlay();
+    // TODO: I had to use `unknown` here to avoid having to mock the entirety
+    // of `React.SyntheticEvent`. It seems like there should be a better
+    // soltuion than this though. Becuase we are only doing this because
+    // onHideOverlay requires an `event` based on its type, I think it's ok
+    // to keep this in the test, but I'm open to suggestions.
+    const fakeEvent = (createFakeEvent() as unknown) as React.SyntheticEvent;
+
+    onHideOverlay(fakeEvent);
 
     expect(dispatchSpy).toHaveBeenCalledWith(popoverActions.hide(id));
   });
