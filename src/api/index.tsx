@@ -107,7 +107,7 @@ export enum HttpMethod {
 
 type CallApiQuery = { [key: string]: string };
 
-type CallApiParams<BodyDataType extends undefined | Record<string, unknown>> = {
+type CallApiParams<BodyDataType extends undefined | unknown> = {
   _makeQueryString?: typeof makeQueryString;
   apiState: ApiState;
   bodyData?: BodyDataType;
@@ -154,7 +154,7 @@ type EmptyRequestAndResponse = {
 export const callApi = async <
   T extends {
     requestData: undefined | Record<string, unknown>;
-    successfulResponse: Record<string, unknown>;
+    successfulResponse: unknown;
   }
 >({
   _makeQueryString = makeQueryString,
