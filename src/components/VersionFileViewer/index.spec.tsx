@@ -64,11 +64,9 @@ describe(__filename, () => {
       file: {
         ...fakeVersion.file,
         content: fileContent,
-        // eslint-disable-next-line @typescript-eslint/camelcase
         selected_file: path,
         ...fileProps,
       },
-      // eslint-disable-next-line @typescript-eslint/camelcase
       file_entries: {
         ...fakeVersion.file_entries,
         [path]: entry || { ...fakeVersionEntry, filename: path, path },
@@ -215,7 +213,6 @@ describe(__filename, () => {
     const filename = 'someFileName.js';
     const version = createInternalVersion({
       ...fakeVersion,
-      // eslint-disable-next-line @typescript-eslint/camelcase
       file: { ...fakeVersionFile, filename, selected_file: filename },
     });
     const entryStatusMap: EntryStatusMap = {
@@ -375,7 +372,6 @@ describe(__filename, () => {
 
     const { file, version } = getInternalVersionAndFile({
       fileContent,
-      // eslint-disable-next-line @typescript-eslint/camelcase
       fileProps: { mime_category: 'image' },
     });
     const root = renderPanel({ file, version }, PanelAttribs.altSidePanel);

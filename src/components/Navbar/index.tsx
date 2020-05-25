@@ -49,7 +49,7 @@ type Props = PublicProps &
   DefaultProps &
   PropsFromState &
   ConnectedReduxProps &
-  RouteComponentProps<{}>;
+  RouteComponentProps<Record<string, string | undefined>>;
 
 type State = {
   nextBaseVersionImprint: string | undefined;

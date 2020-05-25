@@ -28,7 +28,7 @@ export type ExternalLinterMessage = LinterMessageBase & {
   description: string | string[];
   // These are some extra properties that we don't need to work with.
   context: string[];
-  for_appversions: object;
+  for_appversions: Record<string, unknown>;
   id: string[];
   tier: number;
 };
@@ -42,9 +42,9 @@ export type ExternalLinterResult = {
     detected_type: string;
     ending_tier: number;
     errors: number;
-    message_tree: object;
+    message_tree: Record<string, unknown>;
     messages: ExternalLinterMessage[];
-    metadata: object;
+    metadata: Record<string, unknown>;
     notices: number;
     success: boolean;
     warnings: number;

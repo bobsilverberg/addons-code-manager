@@ -44,7 +44,7 @@ import KeyboardShortcuts, {
 
 describe(__filename, () => {
   type RenderParams = {
-    location?: Location<{}>;
+    location?: Location<Record<string, unknown>>;
     store?: Store;
   } & Partial<PublicProps & DefaultProps>;
 
@@ -57,7 +57,6 @@ describe(__filename, () => {
       file: {
         ...fakeVersion.file,
       },
-      // eslint-disable-next-line @typescript-eslint/camelcase
       file_entries: pathList.reduce((pathMap, path: string) => {
         return {
           ...pathMap,
