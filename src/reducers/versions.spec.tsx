@@ -32,9 +32,8 @@ import reducer, {
   fetchVersionFile,
   fetchVersionsList,
   getInsertedLines,
-  getCompareInfo,
-  getCompareInfoKey,
   getDiffAnchors,
+  getDiffKey,
   getEntryStatusMapKey,
   getEntryStatusMap,
   getMostRelevantEntryStatus,
@@ -42,12 +41,13 @@ import reducer, {
   getPrunedExpandedPaths,
   getRelativeDiff,
   getRelativeDiffAnchor,
+  getVersionDiff,
   getVersionFile,
   getVersionFiles,
   getVersionInfo,
   goToRelativeDiff,
   initialState,
-  isCompareInfoLoading,
+  isDiffLoading,
   isFileLoading,
   isFileWithContent,
   isFileWithDiff,
@@ -634,136 +634,87 @@ describe(__filename, () => {
       expect(state.byAddonId[addonId]).toEqual(createVersionsMap(versions));
     });
 
-    it('sets the compare info to `null` and the loading flag to `false` on abortFetchDiff()', () => {
+    it('sets the VersionInfo and VersionDiff to `null` and the loading flags to `false` on abortFetchDiff()', () => {
       const addonId = 1;
       const baseVersionId = 2;
       const headVersionId = 2;
+      const path = 'some/path.js';
 
-      let versionsState = reducer(
+      let versions = reducer(
         undefined,
         actions.beginFetchDiff({
           addonId,
           baseVersionId,
           headVersionId,
+          path,
         }),
       );
-      versionsState = reducer(
-        versionsState,
+
+      versions = reducer(
+        versions,
         actions.abortFetchDiff({
           addonId,
           baseVersionId,
           headVersionId,
+          path,
         }),
       );
 
+      expect(getVersionInfo(versions, headVersionId)).toEqual(null);
+      expect(selectVersionIsLoading(versions, headVersionId)).toEqual(false);
       expect(
-        getCompareInfo(versionsState, addonId, baseVersionId, headVersionId),
-      ).toEqual(null);
-      expect(
-        isCompareInfoLoading(
-          versionsState,
+        getVersionDiff({
           addonId,
           baseVersionId,
           headVersionId,
-        ),
+          path,
+          versions,
+        }),
+      ).toEqual(null);
+      expect(
+        isDiffLoading(versions, addonId, baseVersionId, headVersionId, path),
       ).toEqual(false);
     });
 
-    it('resets the compare info and sets the loading flag to `true` on beginFetchDiff()', () => {
+    it('resets the VersionDiff and sets the loading flag to `true` on beginFetchDiff()', () => {
       const addonId = 1;
       const baseVersionId = 2;
       const headVersionId = 2;
+      const path = 'some/path.js';
 
-      let versionsState = reducer(
+      let versions = reducer(
         undefined,
-        actions.abortFetchDiff({ addonId, baseVersionId, headVersionId }),
+        actions.abortFetchDiff({ addonId, baseVersionId, headVersionId, path }),
       );
-      versionsState = reducer(
-        versionsState,
-        actions.beginFetchDiff({ addonId, baseVersionId, headVersionId }),
+      versions = reducer(
+        versions,
+        actions.beginFetchDiff({ addonId, baseVersionId, headVersionId, path }),
       );
 
       expect(
-        getCompareInfo(versionsState, addonId, baseVersionId, headVersionId),
-      ).toEqual(undefined);
-      expect(
-        isCompareInfoLoading(
-          versionsState,
+        getVersionDiff({
           addonId,
           baseVersionId,
           headVersionId,
-        ),
+          path,
+          versions,
+        }),
+      ).toEqual(undefined);
+      expect(
+        isDiffLoading(versions, addonId, baseVersionId, headVersionId, path),
       ).toEqual(true);
     });
 
-    it('loads compare info', () => {
-      const addonId = nextUniqueId();
-      const baseFileId = nextUniqueId();
-      const baseVersionId = nextUniqueId();
-      const path = 'manifest.json';
-      const mimeType = 'mime/type';
-
-      const version = {
-        ...fakeVersionWithDiff,
-        file: {
-          ...fakeVersionWithDiff.file,
-          base_file: {
-            id: baseFileId,
-          },
-          mimetype: mimeType,
-          // eslint-disable-next-line @typescript-eslint/camelcase
-          selected_file: path,
-        },
-      };
-      const headVersionId = version.id;
-
-      let versionsState = reducer(
-        undefined,
-        _loadVersionInfo({
-          version,
-        }),
-      );
-      versionsState = reducer(
-        versionsState,
-        actions.loadDiff({
-          addonId,
-          baseVersionId,
-          headVersionId,
-          version,
-        }),
-      );
-
-      expect(
-        getCompareInfo(versionsState, addonId, baseVersionId, headVersionId),
-      ).toEqual({
-        baseFileId,
-        diff: createInternalDiff(version.file.diff),
-        mimeType,
-      });
-      expect(
-        isCompareInfoLoading(
-          versionsState,
-          addonId,
-          baseVersionId,
-          headVersionId,
-        ),
-      ).toEqual(false);
-    });
-
     it('throws an error message when headVersion is missing on loadDiff()', () => {
-      const addonId = 1;
-      const baseVersionId = 2;
-      const version = fakeVersionWithDiff;
-      const headVersionId = version.id;
-
       expect(() => {
         reducer(
           undefined,
           actions.loadDiff({
-            addonId,
-            baseVersionId,
-            headVersionId,
-            version,
+            addonId: nextUniqueId(),
+            baseVersionId: nextUniqueId(),
+            headVersionId: nextUniqueId(),
+            path: 'some/path.js',
+            version: fakeVersionWithDiff,
           }),
         );
       }).toThrow(/Version missing for headVersionId/);
@@ -977,6 +928,132 @@ describe(__filename, () => {
       expect(getVersionFile(state, version.id, 'path-to-unknown-file')).toEqual(
         undefined,
       );
+    });
+  });
+
+  describe('getVersionDiff', () => {
+    /* eslint-disable @typescript-eslint/camelcase */
+    it('returns a version diff', () => {
+      const addonId = nextUniqueId();
+      const baseVersionId = nextUniqueId();
+      const downloadURL = 'http://example.org/download/file';
+      const isMinified = true;
+      const mimeType = 'mime/type';
+      const filename = 'test.js';
+      const path = `some/dir/${filename}`;
+      const sha256 = 'some-sha';
+      const type = 'text';
+      const version = {
+        ...fakeVersionWithContent,
+        addon: {
+          ...fakeVersionAddon,
+          id: addonId,
+        },
+        file: {
+          ...fakeVersionFileWithDiff,
+          filename,
+          download_url: downloadURL,
+          mime_category: type as VersionEntryType,
+          mimetype: mimeType,
+          sha256,
+          selected_file: path,
+          uses_unknown_minified_code: isMinified,
+        },
+      };
+      const headVersionId = version.id;
+
+      let versions = reducer(undefined, _loadVersionInfo({ version }));
+      versions = reducer(
+        versions,
+        actions.loadDiff({
+          addonId,
+          baseVersionId,
+          headVersionId,
+          path,
+          version,
+        }),
+      );
+
+      expect(
+        getVersionDiff({
+          addonId,
+          baseVersionId,
+          headVersionId,
+          path,
+          versions,
+        }),
+      ).toEqual({
+        ...createInternalVersionFile(version.file),
+        downloadURL,
+        isMinified,
+        filename,
+        mimeType,
+        sha256,
+        fileType: type,
+      });
+    });
+    /* eslint-enable @typescript-eslint/camelcase */
+
+    it('returns undefined if there is no version found', () => {
+      const versions = initialState;
+
+      expect(
+        getVersionDiff({
+          addonId: nextUniqueId(),
+          baseVersionId: nextUniqueId(),
+          headVersionId: nextUniqueId(),
+          path: 'some/path',
+          versions,
+        }),
+      ).toEqual(undefined);
+    });
+
+    it('returns `null` when the file was not retrieved from the API', () => {
+      const version = fakeVersionWithContent;
+      const addonId = nextUniqueId();
+      const baseVersionId = nextUniqueId();
+      const headVersionId = version.id;
+      const path = 'some/path.js';
+
+      let versions = reducer(undefined, _loadVersionInfo({ version }));
+      versions = reducer(
+        versions,
+        actions.abortFetchDiff({
+          addonId: version.addon.id,
+          baseVersionId,
+          headVersionId,
+          path,
+        }),
+      );
+
+      expect(
+        getVersionDiff({
+          addonId,
+          baseVersionId,
+          headVersionId,
+          path,
+          versions,
+        }),
+      ).toEqual(null);
+    });
+
+    it('returns undefined if there is no diff for the path', () => {
+      const version = fakeVersionWithContent;
+      const addonId = nextUniqueId();
+      const baseVersionId = nextUniqueId();
+      const headVersionId = version.id;
+
+      const versions = reducer(undefined, _loadVersionInfo({ version }));
+
+      expect(
+        getVersionDiff({
+          addonId,
+          baseVersionId,
+          headVersionId,
+          path: 'some/not-loaded/path.js',
+          versions,
+        }),
+      ).toEqual(undefined);
     });
   });
 
@@ -1590,7 +1667,7 @@ describe(__filename, () => {
   });
 
   describe('createInternalDiff', () => {
-    it('creates a DiffInfo object from a diff', () => {
+    it('creates a DiffInfo object from a version with diff', () => {
       const externalDiff = fakeExternalDiff;
 
       const diff = createInternalDiff(externalDiff);
@@ -1956,11 +2033,11 @@ describe(__filename, () => {
       );
     });
 
-    it('dispatches loadDiff() when API response is successful', async () => {
-      const version = { ...fakeVersionWithDiff, id: 3 };
-      const addonId = 1;
-      const baseVersionId = 2;
-      const headVersionId = version.id;
+    it('dispatches loadDiffFileFromVersion when API response is successful', async () => {
+      const addonId = nextUniqueId();
+      const baseVersionId = nextUniqueId();
+      const headVersionId = nextUniqueId();
+      const version = { ...fakeVersionWithDiff, id: headVersionId };
 
       const { dispatch, thunk } = _fetchDiff({
         addonId,
@@ -1971,10 +2048,10 @@ describe(__filename, () => {
       await thunk();
 
       expect(dispatch).toHaveBeenCalledWith(
-        actions.loadDiff({
-          addonId,
+        actions.loadDiffFileFromVersion({
           baseVersionId,
           headVersionId,
+          path: version.file.selected_file,
           version,
         }),
       );
@@ -2734,37 +2811,26 @@ describe(__filename, () => {
     });
   });
 
-  describe('getCompareInfoKey', () => {
+  describe('getDiffKey', () => {
+    const addonId = nextUniqueId();
+    const baseVersionId = nextUniqueId();
+    const headVersionId = nextUniqueId();
+
     it('computes a key given an addonId, baseVersionId and headVersionId', () => {
-      const addonId = 123;
-      const baseVersionId = 1;
-      const headVersionId = 2;
-
-      expect(
-        getCompareInfoKey({ addonId, baseVersionId, headVersionId }),
-      ).toEqual(`${addonId}/${baseVersionId}/${headVersionId}/`);
-    });
-
-    it('computes a key given an addonId, baseVersionId, headVersionId and path', () => {
-      const addonId = 123;
-      const baseVersionId = 1;
-      const headVersionId = 2;
-      const path = 'path';
-
-      expect(
-        getCompareInfoKey({ addonId, baseVersionId, headVersionId, path }),
-      ).toEqual(`${addonId}/${baseVersionId}/${headVersionId}/${path}`);
+      expect(getDiffKey({ addonId, baseVersionId, headVersionId })).toEqual(
+        `${addonId}/${baseVersionId}/${headVersionId}`,
+      );
     });
   });
 
-  describe('isCompareInfoLoading', () => {
-    it('returns false by default', () => {
-      const addonId = 123;
-      const baseVersionId = 1;
-      const headVersionId = 2;
+  describe('isDiffLoading', () => {
+    const addonId = nextUniqueId();
+    const baseVersionId = nextUniqueId();
+    const headVersionId = nextUniqueId();
 
+    it('returns false by default', () => {
       expect(
-        isCompareInfoLoading(
+        isDiffLoading(
           // Nothing has been loaded in this state.
           initialState,
           addonId,
@@ -2774,10 +2840,7 @@ describe(__filename, () => {
       ).toEqual(false);
     });
 
-    it('returns true when loading compare info', () => {
-      const addonId = 123;
-      const baseVersionId = 1;
-      const headVersionId = 2;
+    it('returns true when loading a diff', () => {
       const state = reducer(
         undefined,
         actions.beginFetchDiff({
@@ -2788,8 +2851,48 @@ describe(__filename, () => {
       );
 
       expect(
-        isCompareInfoLoading(state, addonId, baseVersionId, headVersionId),
+        isDiffLoading(state, addonId, baseVersionId, headVersionId),
       ).toEqual(true);
+    });
+
+    it('returns true when loading a specific path', () => {
+      const path = 'some/path.js';
+      const state = reducer(
+        undefined,
+        actions.beginFetchDiff({
+          addonId,
+          baseVersionId,
+          headVersionId,
+          path,
+        }),
+      );
+
+      expect(
+        isDiffLoading(state, addonId, baseVersionId, headVersionId, path),
+      ).toEqual(true);
+    });
+
+    it('returns false when loading a different path', () => {
+      const path = 'some/path.js';
+      const state = reducer(
+        undefined,
+        actions.beginFetchDiff({
+          addonId,
+          baseVersionId,
+          headVersionId,
+          path,
+        }),
+      );
+
+      expect(
+        isDiffLoading(
+          state,
+          addonId,
+          baseVersionId,
+          headVersionId,
+          'some/other/path.js',
+        ),
+      ).toEqual(false);
     });
   });
 

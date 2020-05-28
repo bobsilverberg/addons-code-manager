@@ -1,9 +1,7 @@
 import * as React from 'react';
 import { DiffInfo } from 'react-diff-view';
-import { Store } from 'redux';
 import { ShallowWrapper, shallow } from 'enzyme';
 
-import configureStore from '../../configureStore';
 import { AccordionItem } from '../AccordionMenu';
 import CodeOverview from '../CodeOverview';
 import FileMetadata from '../FileMetadata';
@@ -17,22 +15,21 @@ import { getMessageMap } from '../../reducers/linter';
 import {
   EntryStatusMap,
   ExternalVersionEntry,
-  actions as versionsActions,
-  getVersionFile,
-  getVersionInfo,
   ExternalVersionFileWithContent,
   createInternalVersion,
+  createInternalVersionFile,
+  VersionFileWithContent,
+  VersionFileWithDiff,
 } from '../../reducers/versions';
 import {
-  createFakeCompareInfo,
   createFakeExternalLinterResult,
-  dispatchLoadVersionInfo,
   fakeExternalLinterMessage,
   fakeVersionWithContent,
   fakeVersionEntry,
   getContentShellPanel,
   simulateLinterProvider,
   fakeVersionFileWithContent,
+  fakeVersionFileWithDiff,
 } from '../../test-helpers';
 import { flattenDiffChanges } from '../../utils';
 import styles from './styles.module.scss';
@@ -41,61 +38,41 @@ import VersionFileViewer, { ItemTitles, PublicProps } from '.';
 
 describe(__filename, () => {
   const getInternalVersionAndFile = ({
-    store = configureStore(),
-    path = 'background.js',
+    contentOrDiff = 'content',
     entry,
-    fileContent = 'example file content',
     fileProps = {},
+    path = 'background.js',
   }: {
-    store?: Store;
-    path?: string;
+    contentOrDiff?: string;
     entry?: ExternalVersionEntry;
     fileContent?: string;
     fileProps?: Partial<ExternalVersionFileWithContent>;
+    path?: string;
   } = {}) => {
-    // TODO: add a real createInternalVersionFile().
-    // See https://github.com/mozilla/addons-code-manager/issues/685
-    //
-    // After that this could simply be:
-    // return {
-    //   version: createInternalVersion(...),
-    //   file: createInternalVersionFile(...),
-    // };
+    const baseFile =
+      contentOrDiff === 'content'
+        ? fakeVersionFileWithContent
+        : fakeVersionFileWithDiff;
+    const externalFile = { ...baseFile, ...fileProps };
+    const file =
+      contentOrDiff === 'content'
+        ? (createInternalVersionFile(externalFile) as VersionFileWithContent)
+        : (createInternalVersionFile(externalFile) as VersionFileWithDiff);
+
     const version = {
       ...fakeVersionWithContent,
-      file: {
-        ...fakeVersionWithContent.file,
-        content: fileContent,
-        // eslint-disable-next-line @typescript-eslint/camelcase
-        selected_file: path,
-        ...fileProps,
-      },
+      // file: externalFile,
       // eslint-disable-next-line @typescript-eslint/camelcase
       file_entries: {
         ...fakeVersionWithContent.file_entries,
         [path]: entry || { ...fakeVersionEntry, filename: path, path },
       },
     };
-    dispatchLoadVersionInfo({ store, version });
-    store.dispatch(versionsActions.loadVersionFile({ path, version }));
 
-    const versionsState = store.getState().versions;
-
-    const internalVersion = getVersionInfo(versionsState, version.id);
-    if (!internalVersion) {
-      throw new Error(
-        `Unexpectedly could not retrieve version from state for id=${version.id}`,
-      );
-    }
-
-    const file = getVersionFile(versionsState, version.id, path);
-    if (!file) {
-      throw new Error(
-        `Unexpectedly could not retrieve version file from state for id=${version.id}, path=${path}`,
-      );
-    }
-
-    return { version: internalVersion, file };
+    return {
+      file,
+      version: createInternalVersion(version),
+    };
   };
 
   type RenderParams = Partial<PublicProps>;
@@ -261,8 +238,7 @@ describe(__filename, () => {
 
   it('configures LinterProvider', () => {
     const { version } = getInternalVersionAndFile();
-    const compareInfo = createFakeCompareInfo();
-    const root = render({ compareInfo, version });
+    const root = render({ version });
 
     const provider = root.find(LinterProvider);
     expect(provider).toHaveProp('versionId', version.id);
@@ -277,8 +253,7 @@ describe(__filename, () => {
   });
 
   it('renders a KeyboardShortcuts panel', () => {
-    const { version } = getInternalVersionAndFile();
-    const compareInfo = createFakeCompareInfo();
+    const { file, version } = getInternalVersionAndFile();
     const comparedToVersionId = 41;
 
     const messageMap = getMessageMap(
@@ -286,7 +261,7 @@ describe(__filename, () => {
     );
 
     const root = renderWithLinterProvider(
-      { compareInfo, comparedToVersionId, version },
+      { comparedToVersionId, version },
       { messageMap },
     );
 
@@ -297,14 +272,16 @@ describe(__filename, () => {
 
     expect(shortcuts).toHaveLength(1);
     expect(shortcuts).toHaveProp('comparedToVersionId', comparedToVersionId);
-    expect(shortcuts).toHaveProp('compareInfo', compareInfo);
+    expect(shortcuts).toHaveProp('file', file);
     expect(shortcuts).toHaveProp('currentPath', version.selectedPath);
     expect(shortcuts).toHaveProp('messageMap', messageMap);
     expect(shortcuts).toHaveProp('versionId', version.id);
   });
 
   it('renders CodeOverview', () => {
-    const { file, version } = getInternalVersionAndFile();
+    const fileAndVersion = getInternalVersionAndFile();
+    const file = fileAndVersion.file as VersionFileWithContent;
+    const { version } = fileAndVersion;
     const root = renderPanel({ file, version }, PanelAttribs.altSidePanel);
 
     const overview = root.find(CodeOverview);
@@ -330,19 +307,22 @@ describe(__filename, () => {
   it('passes insertedLines to CodeOverview', () => {
     const insertedLines = [1, 2];
     const _getInsertedLines = jest.fn().mockReturnValue(insertedLines);
-    const { file, version } = getInternalVersionAndFile();
-    const compareInfo = createFakeCompareInfo();
+    const fileAndVersion = getInternalVersionAndFile({
+      contentOrDiff: 'diff',
+    });
+    const file = fileAndVersion.file as VersionFileWithDiff;
+    const { version } = fileAndVersion;
 
     const root = renderPanel(
-      { _getInsertedLines, compareInfo, file, version },
+      { _getInsertedLines, file, version },
       PanelAttribs.altSidePanel,
     );
 
     expect(root.find(CodeOverview)).toHaveProp('insertedLines', insertedLines);
-    expect(_getInsertedLines).toHaveBeenCalledWith(compareInfo.diff);
+    expect(_getInsertedLines).toHaveBeenCalledWith(file.diff);
   });
 
-  it('does not call getInsertedLines if no compareInfo exists', () => {
+  it('does not call getInsertedLines if no diff exists', () => {
     const _getInsertedLines = jest.fn();
     const { file, version } = getInternalVersionAndFile();
 
@@ -355,30 +335,15 @@ describe(__filename, () => {
     expect(_getInsertedLines).not.toHaveBeenCalled();
   });
 
-  it('does not call getInsertedLines if no diff exists', () => {
-    const _getInsertedLines = jest.fn();
-    const { file, version } = getInternalVersionAndFile();
-    const compareInfo = createFakeCompareInfo();
-    delete compareInfo.diff;
-
-    const root = renderPanel(
-      { _getInsertedLines, compareInfo, file, version },
-      PanelAttribs.altSidePanel,
-    );
-
-    expect(root.find(CodeOverview)).toHaveProp('insertedLines', []);
-    expect(_getInsertedLines).not.toHaveBeenCalled();
-  });
-
   it('passes the content of a diff to CodeOverview', () => {
-    const { file, version } = getInternalVersionAndFile();
-    const compareInfo = createFakeCompareInfo();
-    const diff = compareInfo.diff as DiffInfo;
+    const fileAndVersion = getInternalVersionAndFile({
+      contentOrDiff: 'diff',
+    });
+    const file = fileAndVersion.file as VersionFileWithDiff;
+    const { version } = fileAndVersion;
+    const diff = file.diff as DiffInfo;
 
-    const root = renderPanel(
-      { compareInfo, file, version },
-      PanelAttribs.altSidePanel,
-    );
+    const root = renderPanel({ file, version }, PanelAttribs.altSidePanel);
 
     expect(root.find(CodeOverview)).toHaveProp(
       'content',

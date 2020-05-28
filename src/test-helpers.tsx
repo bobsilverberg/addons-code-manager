@@ -48,7 +48,6 @@ import {
   VersionEntryType,
   actions as versionsActions,
   createEntryStatusMap,
-  createInternalCompareInfo,
   createInternalVersion,
 } from './reducers/versions';
 import Commentable, {
@@ -194,9 +193,6 @@ export const fakeExternalDiff = Object.freeze({
 export const fakeVersionFileWithDiff: ExternalVersionFileWithDiff = Object.freeze(
   {
     ...partialFakeVersionFile,
-    base_file: {
-      id: nextUniqueId(),
-    },
     diff: fakeExternalDiff,
   },
 );
@@ -250,9 +246,6 @@ export const createExternalVersionWithEntries = (
     addon: { ...fakeVersionAddon, id: addonId },
     file: {
       ...fakeVersionWithContent.file,
-      base_file: {
-        id: nextUniqueId(),
-      },
       diff,
       selected_file,
     },
@@ -447,22 +440,6 @@ export const createFakeLinterMessagesByPath = ({
     throw new Error(`Somehow no messages were mapped to path "${path}"`);
   }
   return map.byPath[path];
-};
-
-export const createFakeCompareInfo = ({
-  baseVersionId = 1,
-  headVersionId = 2,
-  version = fakeVersionWithDiff,
-}: {
-  baseVersionId?: number;
-  headVersionId?: number;
-  version?: ExternalVersionWithDiff;
-} = {}) => {
-  return createInternalCompareInfo({
-    baseVersionId,
-    headVersionId,
-    version,
-  });
 };
 
 export const createFakeLocation = ({
