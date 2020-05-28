@@ -1,20 +1,24 @@
 import * as React from 'react';
 
-import { VersionFile } from '../../reducers/versions';
+import {
+  VersionFileWithContent,
+  VersionFileWithDiff,
+} from '../../reducers/versions';
 import styles from './styles.module.scss';
 import { formatFilesize, gettext } from '../../utils';
 import { makeApiURL } from '../../api';
 
 type PublicProps = {
-  file: VersionFile;
+  file: VersionFileWithContent | VersionFileWithDiff;
+  versionString: string;
 };
 
-const FileMetadataBase = ({ file }: PublicProps) => {
+const FileMetadataBase = ({ file, versionString }: PublicProps) => {
   return (
     <div className={styles.FileMetadata}>
       <dl>
         <dt>{gettext('Version')}</dt>
-        <dd className={styles.version}>{file.versionString}</dd>
+        <dd className={styles.version}>{versionString}</dd>
         <dt>{gettext('Size')}</dt>
         <dd className={styles.size}>{formatFilesize(file.size)}</dd>
         <dt>{gettext('SHA256 hash')}</dt>

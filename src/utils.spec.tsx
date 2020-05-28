@@ -8,6 +8,8 @@ import {
   ExternalChange,
   ExternalHunk,
   createInternalDiff,
+  createInternalVersionFile,
+  VersionFileWithDiff,
 } from './reducers/versions';
 import { getCodeLineAnchor } from './components/CodeView/utils';
 import {
@@ -31,11 +33,11 @@ import {
   shouldAllowSlowPages,
 } from './utils';
 import {
-  createFakeCompareInfo,
   createFakeHistory,
   createFakeLocation,
   fakeChange,
   fakeExternalDiff,
+  fakeVersionFileWithDiff,
   fakeVersionWithDiff,
 } from './test-helpers';
 
@@ -297,46 +299,42 @@ describe(__filename, () => {
   });
 
   describe('createCodeLineAnchorGetter', () => {
-    it('returns getCodeLineAnchor if compareInfo is null', () => {
-      expect(createCodeLineAnchorGetter({ compareInfo: null })).toEqual(
-        getCodeLineAnchor,
-      );
+    it('returns getCodeLineAnchor if file is null', () => {
+      expect(createCodeLineAnchorGetter(null)).toEqual(getCodeLineAnchor);
     });
 
-    it('returns getCodeLineAnchor if compareInfo is undefined', () => {
-      expect(createCodeLineAnchorGetter({ compareInfo: undefined })).toEqual(
-        getCodeLineAnchor,
-      );
+    it('returns getCodeLineAnchor if file is undefined', () => {
+      expect(createCodeLineAnchorGetter(undefined)).toEqual(getCodeLineAnchor);
     });
 
-    it('returns getCodeLineAnchor if compareInfo.diff is falsey', () => {
+    it('returns getCodeLineAnchor if file.diff is falsey', () => {
       expect(
-        createCodeLineAnchorGetter({
-          compareInfo: createFakeCompareInfo({
-            version: {
-              ...fakeVersionWithDiff,
-              file: {
-                ...fakeVersionWithDiff.file,
-                diff: null,
-              },
-            },
-          }),
-        }),
+        createCodeLineAnchorGetter(
+          createInternalVersionFile({
+            ...fakeVersionFileWithDiff,
+            diff: null,
+          }) as VersionFileWithDiff,
+        ),
       ).toEqual(getCodeLineAnchor);
     });
 
     it('returns getCodeLineAnchor from ForwardComparisonMap if compareInfo.diff exists', () => {
-      const compareInfo = createFakeCompareInfo();
-      if (!compareInfo.diff) {
-        throw new Error('compareInfo.diff was unexpectedly empty');
+      const file = createInternalVersionFile(
+        fakeVersionFileWithDiff,
+      ) as VersionFileWithDiff;
+      if (!file.diff) {
+        throw new Error('file.diff was unexpectedly empty');
       }
 
-      const getterFromFactory = createCodeLineAnchorGetter({ compareInfo });
+      const getterFromFactory = createCodeLineAnchorGetter(file);
 
       // Generate a getter without compareInfo to verify that it is different.
-      const getterFromFactoryWithoutCompareInfo = createCodeLineAnchorGetter({
-        compareInfo: null,
-      });
+      const getterFromFactoryWithoutCompareInfo = createCodeLineAnchorGetter(
+        createInternalVersionFile({
+          ...fakeVersionFileWithDiff,
+          diff: null,
+        }) as VersionFileWithDiff,
+      );
 
       expect(getterFromFactory).not.toEqual(
         getterFromFactoryWithoutCompareInfo,
@@ -548,22 +546,12 @@ describe('ForwardComparisonMap', () => {
     changes?: ExternalChange[];
     hunks?: ExternalHunk[];
   } = {}) => {
-    const fakeVersion = {
-      ...fakeVersionWithDiff,
-      file: {
-        ...fakeVersionWithDiff.file,
-        diff: {
-          ...fakeExternalDiff,
-          hunks,
-        },
-      },
+    const diff = {
+      ...fakeExternalDiff,
+      hunks,
     };
 
-    const diffInfo = createInternalDiff({
-      baseVersionId: 1,
-      headVersionId: 2,
-      version: fakeVersion,
-    });
+    const diffInfo = createInternalDiff(diff);
     if (!diffInfo) {
       throw new Error('diffInfo was unexpectedly empty');
     }
