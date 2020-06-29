@@ -127,7 +127,6 @@ describe(__filename, () => {
     loadDiff = true,
     loadEntryStatusMap = true,
     loadVersionFile = true,
-    path,
   }: {
     addonId?: number;
     baseVersionId?: number;
@@ -135,7 +134,6 @@ describe(__filename, () => {
     loadDiff?: boolean;
     loadEntryStatusMap?: boolean;
     loadVersionFile?: boolean;
-    path?: string;
     setCurrentVersionId?: boolean;
     store?: Store;
     version?: typeof fakeVersionWithDiff;
@@ -171,11 +169,10 @@ describe(__filename, () => {
     }
     if (loadDiff) {
       store.dispatch(
-        versionsActions.loadDiff({
+        versionsActions.loadDiffFromVersion({
           addonId,
           baseVersionId,
           headVersionId,
-          path,
           version,
         }),
       );
@@ -238,7 +235,6 @@ describe(__filename, () => {
       headVersionId,
       loadDiff,
       loadVersionFile,
-      path: getPathFromQueryString(history) || undefined,
       store,
       version,
     });
@@ -606,7 +602,7 @@ describe(__filename, () => {
     );
 
     store.dispatch(
-      versionsActions.loadDiff({
+      versionsActions.loadDiffFromVersion({
         addonId,
         baseVersionId,
         headVersionId,
@@ -1217,7 +1213,7 @@ describe(__filename, () => {
       });
     });
 
-    it.each([['buildTree'], ['loadVersionFile'], ['loadDiff']])(
+    it.each([['buildTree'], ['loadVersionFile'], ['loadDiffFromVersion']])(
       'does not dispatch fetchDiff or fetchVersionFile for the next file before %s is dispatched',
       (action) => {
         const currentFile = 'current.json';
@@ -1326,12 +1322,17 @@ describe(__filename, () => {
         version: { ...fakeVersionWithContent, id: headVersionId },
       });
       store.dispatch(
-        versionsActions.loadDiff({
+        versionsActions.loadDiffFromVersion({
           addonId,
           baseVersionId,
           headVersionId,
-          version: fakeVersionWithDiff,
-          path: nextModifiedFile,
+          version: {
+            ...fakeVersionWithDiff,
+            file: {
+              ...fakeVersionWithDiff.file,
+              selected_file: nextModifiedFile,
+            },
+          },
         }),
       );
       const { _fetchDiff } = setUpForPreloadAndRender({
